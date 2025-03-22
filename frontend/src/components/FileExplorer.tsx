@@ -1,85 +1,58 @@
-import React, { useState } from 'react';
-import { FolderTree, File, ChevronRight, ChevronDown } from 'lucide-react';
-import { FileItem } from '../types';
+import { useState } from "react";
+import { FileNode } from "../pages/Builder";
+import { Folder, FolderOpen, FileText } from "lucide-react";
 
 interface FileExplorerProps {
-  files: FileItem[];
-  onFileSelect: (file: FileItem) => void;
-}
-
-interface FileNodeProps {
-  item: FileItem;
-  depth: number;
-  onFileClick: (file: FileItem) => void;
-}
-
-function FileNode({ item, depth, onFileClick }: FileNodeProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
-
-  const handleClick = () => {
-    if (item.type === 'folder') {
-      setIsExpanded(!isExpanded);
-    } else {
-      onFileClick(item);
-    }
-  };
-
-  return (
-    <div className="select-none">
-      <div
-        className="flex items-center gap-2 p-2 hover:bg-gray-800 rounded-md cursor-pointer"
-        style={{ paddingLeft: `${depth * 1.5}rem` }}
-        onClick={handleClick}
-      >
-        {item.type === 'folder' && (
-          <span className="text-gray-400">
-            {isExpanded ? (
-              <ChevronDown className="w-4 h-4" />
-            ) : (
-              <ChevronRight className="w-4 h-4" />
-            )}
-          </span>
-        )}
-        {item.type === 'folder' ? (
-          <FolderTree className="w-4 h-4 text-blue-400" />
-        ) : (
-          <File className="w-4 h-4 text-gray-400" />
-        )}
-        <span className="text-gray-200">{item.name}</span>
-      </div>
-      {item.type === 'folder' && isExpanded && item.children && (
-        <div>
-          {item.children.map((child, index) => (
-            <FileNode
-              key={`${child.path}-${index}`}
-              item={child}
-              depth={depth + 1}
-              onFileClick={onFileClick}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-export function FileExplorer({ files, onFileSelect }: FileExplorerProps) {
-  return (
-    <div className="bg-gray-900 rounded-lg shadow-lg p-4 h-full overflow-auto">
-      <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-gray-100">
-        <FolderTree className="w-5 h-5" />
-        File Explorer
-      </h2>
-      <div className="space-y-1">
-        {files.map((file, index) => (
-          <FileNode
-            key={`${file.path}-${index}`}
-            item={file}
-            depth={0}
-            onFileClick={onFileSelect}
-          />
+    files: FileNode[];
+    onFileSelect: (file: FileNode) => void; // Change here
+  }
+  export const FileExplorer: React.FC<FileExplorerProps> = ({ files, onFileSelect }) => {
+    return (
+      <div className="w-72 h-full bg-gray-900 text-white p-3 text-sm font-mono shadow-md">
+        <h2 className="text-gray-300 text-xs uppercase tracking-wide mb-2">Explorer</h2>
+        {files.map((file) => (
+          <FileNodeComponent key={file.path} file={file} level={0} onFileSelect={onFileSelect} />
         ))}
       </div>
-    </div>
-  );
-}
+    );
+  };
+  
+  const FileNodeComponent: React.FC<{ file: FileNode; level: number; onFileSelect: (file: FileNode) => void }> = ({
+    file,
+    level,
+    onFileSelect,
+  }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const hasChildren = file.children && file.children.length > 0;
+  
+    return (
+      <div>
+        <div
+          className="flex items-center gap-2 px-2 py-1 rounded cursor-pointer select-none transition hover:bg-gray-800"
+          style={{ paddingLeft: `${level * 12}px` }}
+          onClick={() => {
+            if (file.type === "file") {
+              onFileSelect(file); // Pass full file instead of just content
+            } else if (hasChildren) {
+              setIsOpen(!isOpen);
+            }
+          }}
+        >
+          {file.type === "folder" ? (
+            isOpen ? <FolderOpen className="w-4 h-4 text-yellow-400" /> : <Folder className="w-4 h-4 text-yellow-500" />
+          ) : (
+            <FileText className="w-4 h-4 text-gray-400" />
+          )}
+          <span className="truncate">{file.name}</span>
+        </div>
+  
+        {hasChildren && isOpen && (
+          <div className="ml-3 border-l border-gray-700 pl-2">
+            {file.children?.map((child) => (
+              <FileNodeComponent key={child.path} file={child} level={level + 1} onFileSelect={onFileSelect} />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
