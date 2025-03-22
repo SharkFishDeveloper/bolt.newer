@@ -1,1 +1,1 @@
-{"root":["./src/index.ts","./src/interface/message.ts","./src/prompts/baseprompt.ts","./src/prompts/next.ts","./src/prompts/node.ts","./src/prompts/react.ts"],"version":"5.7.2"}
+{"root":["./src/index.ts","./src/interface/message.ts","./src/prompts/baseprompt.ts","./src/prompts/getsystemprompt.ts","./src/prompts/next.ts","./src/prompts/node.ts","./src/prompts/react.ts"],"version":"5.7.2"}

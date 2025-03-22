@@ -8,6 +8,7 @@ import { nextbasePrompt } from "./prompts/next";
 import { nodebasePrompt } from "./prompts/node";
 import { MessageChat } from "./Interface/Message";
 import { BASE_PROMPT } from "./prompts/BasePrompt";
+import { getSystemPrompt } from "./prompts/getSystemPrompt";
 // import { BASE_PROMPT, getSystemPrompt } from "./prompts";
 // import { basePrompt as nodeBasePrompt } from "./defaults/node";
 // import { basePrompt as reactBasePrompt } from "./defaults/react";
@@ -81,25 +82,23 @@ app.post("/chat", async (req, res) => {
         //@ts-ignore
         parts: [{ text: message.parts[0].text }] 
     }));
-    console.log(JSON.stringify(messages,null,2))
-    console.log(JSON.stringify(formattedMessages,null,2))
-    return ;
-    // try {
-    //     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-    //     const result = await model.generateContent({
-    //         contents:formattedMessages,
-    //         generationConfig: { maxOutputTokens: 8000 },
-    //         // systemInstruction: getSystemPrompt()
-    //     });
+    try {
+        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+        const result = await model.generateContent({
+            contents:formattedMessages,
+            generationConfig: { maxOutputTokens: 8000 },
+            systemInstruction: getSystemPrompt
+        });
 
-    //     const responseText = result.response.candidates?.[0]?.content?.parts?.[0]?.text ?? "No response generated.";
-    //     //@ts-ignore
-    //     result.response.candidates[0].content.parts.map((part)=>console.log(part))
-    //     res.json({ response: responseText });
-    // } catch (error) {
-    //     console.error("❌ Error generating chat response:", error);
-    //     res.status(500).json({ message: "Internal server error" });
-    // }
+        const responseText = result.response.candidates?.[0]?.content?.parts?.[0]?.text ?? "No response generated.";
+        //@ts-ignore
+        result.response.candidates[0].content.parts.map((part)=>console.log(part))
+        console.log("responseText, ",responseText)
+        res.json({ response: responseText });
+    } catch (error) {
+        console.error("❌ Error generating chat response:", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
 });
 
 app.listen(3000, () => {
