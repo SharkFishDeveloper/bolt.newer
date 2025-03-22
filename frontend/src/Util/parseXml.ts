@@ -6,10 +6,13 @@ interface FileNode {
   children?: FileNode[];
 }
 
-export function parseBoltXml(xml: string): FileNode[] {
-  const nodes = parseFlatNodes(xml[0]);
-  return buildTree(nodes);
+export function parseBoltXml(xml: string | string[]): FileNode[] {
+  const parsedXml = Array.isArray(xml) ? xml[0] : xml;
+  const nodes = parseFlatNodes(parsedXml);
+  const tree = buildTree(nodes);
+  return tree;
 }
+
 
 function parseFlatNodes(xml: string): FileNode[] {
   const regex = /<bolt\s+name="(.*?)"\s+type="(.*?)"\s+path="(.*?)">(.*?)<\/bolt>/gs;
@@ -48,6 +51,6 @@ function buildTree(nodes: FileNode[]): FileNode[] {
       rootNodes.push(node);
     }
   }
-
+  console.log("rootNodes",rootNodes)
   return rootNodes.slice(1);
 }
