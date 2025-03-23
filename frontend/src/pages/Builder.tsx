@@ -62,6 +62,23 @@ const Builder = () => {
         setEditorContent(file.content || "");
     };
 
+    const handleEditorChange = (value: string | undefined) => {
+        if (!selectedFile) return;
+        setEditorContent(value || "");
+        setFiles(prevFiles => {
+            const updateFileContent = (nodes: FileNode[]): FileNode[] =>
+                nodes.map(node =>
+                    node.path === selectedFile.path
+                        ? { ...node, content: value || "" }
+                        : node.children
+                        ? { ...node, children: updateFileContent(node.children) }
+                        : node
+                );  
+            return updateFileContent(prevFiles);
+        });
+    };
+
+
     useEffect(() => {
         const setTemplateFunction = async () => {
             try {
@@ -69,7 +86,7 @@ const Builder = () => {
                 const response = await axios.post(`${BACKEND_URL}/template`, { prompt });
                 const parsedSteps = await parseBoltXml(response.data.uiPrompts);
                 setFiles(parsedSteps);
-                let newFiles: string[] = [];
+                const newFiles: string[] = [];
                 parsedSteps.forEach(step => dfsFilesOnly(step, newFiles));
                 setSteps(newFiles);
 
@@ -80,7 +97,6 @@ const Builder = () => {
                 setLlmMessages(prev => [...prev, ...newMessages]);
 
                 const chatResponse = await axios.post(`${BACKEND_URL}/chat`, { content: newMessages });
-                //@ts-expect-error : Type error
                 const againParsedSteps = parseBoltXml([chatResponse.data.response]);
                 const updatedFiles2 = updateFiles(againParsedSteps, parsedSteps)
                 setFiles(updatedFiles2);
@@ -106,22 +122,7 @@ const Builder = () => {
         }
     }, [dfsFilesOnly, prompt, updateFiles]);
 
-    const handleEditorChange = (value: string | undefined) => {
-        if (!selectedFile) return;
-        setEditorContent(value || "");
-        setFiles(prevFiles => {
-            const updateFileContent = (nodes: FileNode[]): FileNode[] =>
-                nodes.map(node =>
-                    node.path === selectedFile.path
-                        ? { ...node, content: value || "" }
-                        : node.children
-                        ? { ...node, children: updateFileContent(node.children) }
-                        : node
-                );  
-            return updateFileContent(prevFiles);
-        });
-    };
-
+   
     const handleSend = async()=>{
         if(textAreaChat==="")return;
         setLoading(true);
@@ -131,13 +132,10 @@ const Builder = () => {
         })
         const againParsedSteps = parseBoltXml(chatResponse.data.response);
         const updatedFiles2 = updateFiles(againParsedSteps, files)
-        console.log("againParsedSteps ",againParsedSteps)
-        console.log("updatedFiles ,",updatedFiles2)
         setFiles(updatedFiles2);
-        //* Check if let is required
         const newFiles: string[] = [];
         againParsedSteps.forEach(step => dfsFilesOnly(step, newFiles));
-
+        setSteps((prev)=>[...prev, ...newFiles])
         setLlmMessages((prev)=>{
             const updatedMessages = [...prev];
             updatedMessages[0] = {
@@ -146,60 +144,83 @@ const Builder = () => {
             };
             return updatedMessages;
         })
-        setLoading(false)
+        if (selectedFile) {
+            const updatedFile = updatedFiles2.find(file => file.path === selectedFile.path);
+            if (updatedFile) {
+                setSelectedFile(updatedFile);
+                setEditorContent(updatedFile.content || "");
+            }
+        }
+    
+        setLoading(false);
     }
 
 
     return (
-        <div>
-          {loading && <div className="bg-gray-800 h-[2rem] flex items-center justify-center"><Loader /></div>}
-          {/* {<p>{JSON.stringify(llmMessages)}</p>}
-          <div className="mt-9">
-                <textarea
-                    className="w-full h-[120px] bg-gray-800 text-white border border-gray-700 p-2 rounded-md resize-none"
-                    placeholder="Ask AI to do something"
-                    onChange={(e) => setTextAreaChat(e.target.value)}
-                />
-                <button className="h-[2.5rem] w-[5rem] bg-blue-700 text-white rounded-md" onClick={handleSend}>Send</button>
-                </div> */}
-            <div className="flex h-screen bg-gray-800">
-            
-            <div className="w-[20rem] h-full bg-gray-900 p-4 border-r border-gray-700 flex flex-col">
-                <h2 className="text-lg font-semibold text-green-500 mb-2">Process</h2>
-                <div className="bg-gray-800 text-white px-3 py-2 rounded-md shadow-md ">
-                    Total Steps: <span className="text-green-400 font-bold">{steps.length}</span>
+        <div className="min-h-screen flex flex-col bg-gray-800 relative">
+            {/* Loader (Fixed at the very top, stays above everything) */}
+            {loading && (
+                <div className="fixed top-0 left-0 w-full h-[2rem] bg-gray-800 flex items-center justify-center z-50">
+                    <Loader />
                 </div>
-                <div className="mt-4 h-10 overflow-hidden">
-                    <div className="overflow-y-auto h-full pr-2 scrollbar-none">
+            )}
+    
+            <div className="flex flex-col md:flex-row flex-1 pt-[2rem]">
+                {/* Sidebar */}
+                <div className="w-full md:w-[20rem] h-auto md:h-full bg-gray-900 p-4 border-b md:border-b-0 md:border-r border-gray-700 flex flex-col">
+                    
+                    {/* Process Section (Fixed height) */}
+                    <div className="h-[6rem]">
+                        <h2 className="text-lg font-semibold text-green-500 mb-2">Process</h2>
+                        <div className="bg-gray-800 text-white px-3 py-2 rounded-md shadow-md">
+                            Total Steps: <span className="text-green-400 font-bold">{steps.length}</span>
+                        </div>
+                    </div>
+    
+                    {/* Steps (Scrollable if needed) */}
+                    <div className="mt-2 max-h-[6rem] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-600">
                         {steps.map((step, index) => (
-                            <div key={index} className="bg-gray-800 text-sm text-white p-2 rounded-md border border-gray-700">
+                            <div key={index} className="bg-gray-800 text-sm text-white p-2 rounded-md border border-gray-700 mb-1">
                                 {step}
                             </div>
                         ))}
                     </div>
+    
+                    {/* File Explorer (Fixed height & Scrollable) */}
+                    <div className="mt-4 border-t border-gray-700 pt-3 h-[18rem] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600">
+                        <FileExplorer files={files} onFileSelect={handleFileSelect} />
+                    </div>
+    
+                    {/* Text Input & Send Button */}
+                    <div className="mt-4">
+                        <textarea
+                            className="w-full h-[100px] bg-gray-800 text-white border border-gray-700 p-2 rounded-md resize-none"
+                            placeholder="Ask AI to do something"
+                            onChange={(e) => setTextAreaChat(e.target.value)}
+                        />
+                        <button 
+                            className="mt-2 w-full md:w-[5rem] h-[2.5rem] bg-blue-700 text-white rounded-md"
+                            onClick={handleSend}
+                        >
+                            Send
+                        </button>
+                    </div>
                 </div>
-                <div className="mt-4 border-t border-gray-700 pt-3">
-                    <FileExplorer files={files} onFileSelect={handleFileSelect} />
+    
+                {/* Editor Section */}
+                <div className="flex-1 p-4 overflow-auto">
+                    <Editor 
+                        height="100%" 
+                        defaultLanguage="javascript" 
+                        theme="vs-dark" 
+                        value={editorContent} 
+                        onChange={handleEditorChange} 
+                    />
                 </div>
-
-                <div className="mt-9">
-                <textarea
-                    className="w-full h-[120px] bg-gray-800 text-white border border-gray-700 p-2 rounded-md resize-none"
-                    placeholder="Ask AI to do something"
-                    onChange={(e) => setTextAreaChat(e.target.value)}
-                />
-                <button className="h-[2.5rem] w-[5rem] bg-blue-700 text-white rounded-md" onClick={handleSend}>Send</button>
-                </div>
-
-
-
             </div>
-            <div className="flex-1 p-4">
-                <Editor height="100%" defaultLanguage="javascript" theme="vs-dark" value={editorContent} onChange={handleEditorChange} />
-            </div>
-        </div>
         </div>
     );
+    
 };
 
 export default Builder;

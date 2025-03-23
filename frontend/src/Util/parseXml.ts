@@ -8,6 +8,7 @@ interface FileNode {
 
 export function parseBoltXml(xml: string | string[]): FileNode[] {
   const parsedXml = Array.isArray(xml) ? xml[0] : xml;
+  console.log("parsedXml",parsedXml)
   const nodes = parseFlatNodes(parsedXml);
   const tree = buildTree(nodes);
   return tree;
@@ -52,5 +53,5 @@ function buildTree(nodes: FileNode[]): FileNode[] {
     }
   }
   console.log("rootNodes",rootNodes)
-  return rootNodes.slice(1);
+  return rootNodes;
 }

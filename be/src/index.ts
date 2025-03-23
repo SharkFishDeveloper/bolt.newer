@@ -83,7 +83,7 @@ console.log(`${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`);
         //@ts-ignore
         parts: [{ text: message.parts[0].text }] 
     }));
-    console.log(JSON.stringify(messages,null,2))
+    // console.log(JSON.stringify(messages,null,2))
     try {
         const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
         const result = await model.generateContent({
@@ -95,7 +95,7 @@ console.log(`${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`);
         const responseText = result.response.candidates?.[0]?.content?.parts?.[0]?.text ?? "No response generated.";
         //@ts-ignore
         result.response.candidates[0].content.parts.map((part)=>console.log(part))
-        // console.log("responseText, ",responseText)
+        console.log("responseText, ",responseText)
         res.json({ response: responseText });
     } catch (error) {
         console.error("❌ Error generating chat response:", error);
